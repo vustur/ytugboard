@@ -166,6 +166,10 @@ wsConn.onmessage = (e) => {
     } else {
       alert("Неверный ключ администратора или на сервере не установлен ключ администратора")
     }
+  break
+  case 'clearCanvasServ':
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    drawRects()
 }
 
 function showChangelog() {
@@ -202,6 +206,7 @@ const enableAdmFeatures = () => {
     console.log("Clearing canvas")
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     drawRects()
+    sendMsg('clearCanvas')
   }
   menu.appendChild(clearButton)
 }

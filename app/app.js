@@ -56,6 +56,16 @@ wss.on('connection', (s) => {
       s.nick = data.data
       console.log('Client changed nick to ' + data.data)
     break
+    case 'clearCanvas':
+      lines = []
+      wss.clients.forEach((client) => {
+        if (client.readyState === ws.OPEN) {
+          client.send(JSON.stringify({
+            name: 'clearCanvasServ'
+          }))
+        }
+      })
+    break
     default:
       console.log('Message name not recognized. Gonna ignore it')
     break
