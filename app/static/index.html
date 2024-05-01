@@ -9,8 +9,8 @@
 <body>
     <div class="h-screen w-screen bg-slate-600">
       <div>
-        <div class="absolute left-2 top-2 h-min items-center flex-col flex z-40 gap-4">
-          <div class="flex flex-col gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-300 text-center">
+        <div id="menu" class="absolute left-2 top-2 h-min items-center flex-col flex z-40 gap-4">
+          <div class="flex flex-col gap-2 button">
             <p>Color</p>
             <input
             id="colorP"
@@ -18,17 +18,19 @@
             />
           </div>
           <button
-            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-300 text-center"
+            class="button"
             onclick="showChangelog()">
             Changelog
           </button>
           <button
-            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-300 text-center"
+            class="button"
             onclick="window.location.href='https://t.me/vusturs'">
             Tg channel
         </button>
         </div>
-        <canvas id="canvas" class="absolute" width="1800" height="1800"></canvas>
+        <canvas id="canvas" class="absolute" width="1800" height="1800">
+          Canvas is not supported or failed to load
+        </canvas>
     </div>
 </body>
 </html>

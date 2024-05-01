@@ -1,8 +1,11 @@
 const express = require('express')
+require('dotenv').config()
 const app = express()
 const path = require('path')
 const ws = require('ws')
 const http = require('http')
+const { Socket } = require('dgram')
+const adminKey = process.env.ADMIN_KEY
 let lines = []
 
 app.use('/static', express.static(path.join(__dirname, 'static')))
@@ -15,7 +18,8 @@ wss.on('connection', (s) => {
   s.on('message', (data) => {
     data = JSON.parse(data)
     console.log("Message received - " + data.name + " :")
-    if (data.name === 'lineAdd') {
+    switch (data.name) {
+    case 'lineAdd':
       // console.log(data.data)
       data.data.forEach(line => {
         lines.push(line)
@@ -28,8 +32,8 @@ wss.on('connection', (s) => {
           }))
         }
       })
-    }
-    else if (data.name === 'reqLinesSync') {
+    break
+    case 'reqLinesSync':
       console.log('gonna sync lines')
       wss.clients.forEach((client) => {
         if (client.readyState === ws.OPEN && lines.length > 0) {
@@ -39,13 +43,23 @@ wss.on('connection', (s) => {
           }))
         }
       })
-    }
-    else if (data.name === 'nickChange') {
+    break
+    case 'adminReq':
+      if (data.data === adminKey) {
+        s.send(JSON.stringify({ name: 'adminReqResponse', data: 'success' }))
+      } else {
+        s.send(JSON.stringify({ name: 'adminReqResponse', data: 'invalid' }))
+      }
+      console.log('Req admin key - ' + data.data)
+    break
+    case 'nickChange':
+      s.nick = data.data
       console.log('Client changed nick to ' + data.data)
-    }
-    else {
+    break
+    default:
       console.log('Message name not recognized. Gonna ignore it')
-    }
+    break
+  }
   })
   s.on('close', (e) => {
     console.log('Client disconnected')

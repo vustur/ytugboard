@@ -5,7 +5,7 @@ Simple whiteboard app
 ### How to use
 
 1.  Clone repo
-2.  `npm run tailwind`
+2.  `npm run tailwind` and stop it after rebuild
 3.  `npm run app`
 4.  Have fun!
 

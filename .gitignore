@@ -2,3 +2,4 @@ node_modules
 .vscode
 devtunnel
 app/static/output.css
+.env

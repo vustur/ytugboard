@@ -1,7 +1,7 @@
 const canvas = document.getElementById('canvas')
 const colorPicker = document.getElementById('colorP')
 const ctx = canvas.getContext('2d')
-const wsConn = new WebSocket('wss://' + window.location.host)
+const wsConn = new WebSocket('ws://' + window.location.host)
 canvas.style.backgroundColor = 'white'
 let isMouseDown = false
 let lastPos = { x: 0, y: 0 }
@@ -9,6 +9,9 @@ let lastPosR = { x: canvas.width / 2, y: canvas.height / 2 } // last pos for mov
 let newPos = { x: 0, y: 0 }
 let currentLine = []
 let nick = 'User without nick'
+let adminKey = 'none'
+let showAdmFeatures = false
+let choosenColor = '#000'
 
 const sendMsg = (name, data = []) => {
   wsConn.send(JSON.stringify({
@@ -20,9 +23,9 @@ const sendMsg = (name, data = []) => {
 let nickPrompt = prompt("Введите ник (В текущей версии ник не будет отображаться публично)")
 if (nickPrompt) {
   nick = nickPrompt
-  setTimeout(() => {
-    sendMsg('nickChange', nick)
-  }, 500)
+setTimeout(() => {
+  sendMsg('nickChange', nick)
+}, 500)
 }
 
 const runWhileNotConnected = (func) => {
@@ -41,33 +44,36 @@ runWhileNotConnected(() => {
   sendMsg("reqLinesSync")
 })
 
-let rectPos = { x: 0, y: 0 }
-let rectOffset = 300
-console.log(canvas.width)
-while (rectPos.x < canvas.width + 300) {
-  ctx.beginPath()
-  ctx.rect(rectPos.x, rectPos.y, rectOffset, rectOffset)
-  ctx.fillStyle = '#f6f6f6'
-  ctx.fill()
-  ctx.closePath()
-  rectPos.y += rectOffset * 2
-  if (rectPos.y > canvas.height) {
-    rectPos.y = 0
-    rectPos.x += rectOffset
-    if (rectPos.x % (rectOffset * 2) != 0) {
-      rectPos.y += rectOffset
+const drawRects = () => {
+  let rectPos = { x: 0, y: 0 }
+  let rectOffset = 300
+  console.log(canvas.width)
+  while (rectPos.x < canvas.width + 300) {
+    ctx.beginPath()
+    ctx.rect(rectPos.x, rectPos.y, rectOffset, rectOffset)
+    ctx.fillStyle = '#f6f6f6'
+    ctx.fill()
+    ctx.closePath()
+    rectPos.y += rectOffset * 2
+    if (rectPos.y > canvas.height) {
+      rectPos.y = 0
+      rectPos.x += rectOffset
+      if (rectPos.x % (rectOffset * 2) != 0) {
+        rectPos.y += rectOffset
+      }
     }
+  // console.log("drawing rects... " + rectPos.x + ", " + rectPos.y)
   }
-  console.log("drawing rects... " + rectPos.x + ", " + rectPos.y)
+  console.log("done drawing rects")
 }
-console.log("done drawing rects")
+drawRects()
 
 const moveAround = (x, y) => { // MOUSE X Y POS
     canvas.style.top = `${y - lastPosR.y}px`
     canvas.style.left = `${x - lastPosR.x}px`
   }
 
-const draw = (lx, ly, nx, ny, clr = ctx.strokeStyle, push = true) => {
+const draw = (lx, ly, nx, ny, clr = choosenColor, push = true) => {
     if (lx == nx && ly == ny){
         return
     }
@@ -87,7 +93,7 @@ canvas.addEventListener("mousemove", (e) => {
     lastPos = newPos
     newPos = { x: e.clientX - canvas.offsetLeft, y: e.clientY - canvas.offsetTop }
     if (isMouseDown && e.buttons === 1) {
-      console.log("draw - " + lastPos.x + ", " + lastPos.y + " -> " + newPos.x + ", " + newPos.y)
+      // console.log("draw - " + lastPos.x + ", " + lastPos.y + " -> " + newPos.x + ", " + newPos.y)
       draw(lastPos.x, lastPos.y, newPos.x, newPos.y)
     }
   })
@@ -110,6 +116,7 @@ canvas.addEventListener("mousemove", (e) => {
     if (currentLine.length > 0) {
       sendMsg('lineAdd', currentLine)
     }
+    // sendMsg('clientPosChanged', lastPosR)
   })
   addEventListener("contextmenu", (e) => {
     e.preventDefault()
@@ -117,7 +124,7 @@ canvas.addEventListener("mousemove", (e) => {
 
 colorPicker.addEventListener('input', (e) => {
   console.log(e.target.value)
-  ctx.strokeStyle = e.target.value
+  choosenColor = e.target.value
 })
 
 // WS Connection
@@ -137,22 +144,64 @@ wsConn.onerror = (e) => {
 
 wsConn.onmessage = (e) => {
   const msg = JSON.parse(e.data)
-  if (msg.name === 'lineAddServ'){
-      console.log("message from server lineAddServ - ")
+  console.log("Message received from server - " + msg.name + " :")
+  switch (msg.name) {
+  case 'lineAddServ':
       console.log(msg.data)
       msg.data.forEach(line => {
           draw(line[0].x, line[0].y, line[1].x, line[1].y, line[2])
       });
-  }
-  else if (msg.name === 'linesSyncServ'){
-    console.log("message from server linesSync - ")
+  break
+  case 'linesSyncServ':
     console.log(msg.data)
     msg.data.forEach(line => {
         draw(line[0].x, line[0].y, line[1].x, line[1].y, line[2])
     });
-  }
+  break
+  case 'adminReqResponse':
+    if (msg.data == 'success') {
+      showAdmFeatures = true
+      alert("Функции администратора включены 🧊")
+      enableAdmFeatures()
+    } else {
+      alert("Неверный ключ администратора или на сервере не установлен ключ администратора")
+    }
 }
 
 function showChangelog() {
   alert("Здесь пока ничего нет, так как это первая версия...")
+}
+
+addEventListener('keydown', (e) => {
+  let isEmmited = false
+  switch (e.key) {
+    case 'p':
+      if (showAdmFeatures) {
+        return
+      }
+      let adminKey = prompt("Введите ключ администратора", 'GoodLuck')
+      if (adminKey) {
+        sendMsg('adminReq', adminKey)
+      }
+    break
+  }
+
+})}
+
+const enableAdmFeatures = () => {
+  let menu = document.getElementById('menu')
+  
+  let adminText = document.createElement('p')
+  adminText.innerHTML = 'Admin features'
+  menu.appendChild(adminText)
+
+  let clearButton = document.createElement('button')
+  clearButton.classList.add('button')
+  clearButton.innerHTML = 'Clear canvas'
+  clearButton.onclick = () => {
+    console.log("Clearing canvas")
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    drawRects()
+  }
+  menu.appendChild(clearButton)
 }
